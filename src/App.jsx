@@ -2,9 +2,15 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   ArrowUpRight,
   Bell,
+  Building2,
+  CalendarClock,
+  FileText,
+  Landmark,
   Search,
   ShieldCheck,
+  TrendingUp,
 } from 'lucide-react';
+import { getCachedCalendarEvents } from './data/calendarEventsSource.js';
 import { getCachedSecCompanyTickerCatalog } from './data/secTickerSource.js';
 
 const markets = [
@@ -24,11 +30,132 @@ const orderBooks = [
 
 const flowBars = [52, 74, 46, 88, 67, 91, 72, 56, 83, 61, 79, 95];
 
+const calendarEventIcons = {
+  earnings: TrendingUp,
+  economic: Landmark,
+  ipo: Building2,
+  sec: FileText,
+};
+
+const defaultCalendarCounts = {
+  total: 0,
+  ipoEvents: 0,
+  secReports: 0,
+  earnings: 0,
+  economicEvents: 0,
+};
+
+const defaultCalendarGroups = {
+  ipoEvents: [],
+  secReports: [],
+  earnings: [],
+  economicEvents: [],
+};
+
+const calendarSectionDefinitions = [
+  {
+    key: 'ipoEvents',
+    title: 'IPO Events',
+    type: 'ipo',
+    Icon: Building2,
+  },
+  {
+    key: 'secReports',
+    title: 'SEC Reports',
+    type: 'sec',
+    Icon: FileText,
+  },
+  {
+    key: 'earnings',
+    title: 'Earnings',
+    type: 'earnings',
+    Icon: TrendingUp,
+  },
+  {
+    key: 'economicEvents',
+    title: 'Economic Events',
+    type: 'economic',
+    Icon: Landmark,
+  },
+];
+
+function formatCalendarEventTime(timestamp, locale) {
+  if (!timestamp) {
+    return 'Time TBA';
+  }
+
+  try {
+    return new Intl.DateTimeFormat(locale || undefined, {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(new Date(timestamp));
+  } catch {
+    return new Date(timestamp).toLocaleString();
+  }
+}
+
+function getDateTimeAttribute(timestamp) {
+  return timestamp ? new Date(timestamp).toISOString() : undefined;
+}
+
+function CalendarEventItem({ event, locale, showType = true }) {
+  const TypeIcon = calendarEventIcons[event.type] ?? CalendarClock;
+  const content = (
+    <>
+      <div className="calendar-event-time">
+        <CalendarClock size={17} aria-hidden="true" />
+        <time dateTime={getDateTimeAttribute(event.time)}>
+          {formatCalendarEventTime(event.time, locale)}
+        </time>
+      </div>
+      <div className="calendar-event-body">
+        <div className="calendar-event-titleline">
+          <strong>{event.title}</strong>
+          {showType ? (
+            <span className={`calendar-event-type type-${event.type}`}>
+              <TypeIcon size={14} aria-hidden="true" />
+              {event.typeLabel}
+            </span>
+          ) : null}
+        </div>
+        {event.subtitle ? <span>{event.subtitle}</span> : null}
+        <p>{event.detail}</p>
+      </div>
+    </>
+  );
+
+  if (event.href) {
+    return (
+      <a
+        className="calendar-event"
+        href={event.href}
+        target="_blank"
+        rel="noreferrer"
+      >
+        {content}
+      </a>
+    );
+  }
+
+  return <article className="calendar-event">{content}</article>;
+}
+
 function App() {
   const [tickerCatalog, setTickerCatalog] = useState(null);
   const [tickerQuery, setTickerQuery] = useState('');
   const [tickerStatus, setTickerStatus] = useState('loading');
   const [tickerError, setTickerError] = useState('');
+  const [calendarEventsResult, setCalendarEventsResult] = useState({
+    events: [],
+    groups: defaultCalendarGroups,
+    counts: defaultCalendarCounts,
+    sourceUrl: '',
+    stale: false,
+  });
+  const [calendarEventsStatus, setCalendarEventsStatus] = useState('loading');
+  const [calendarEventsError, setCalendarEventsError] = useState('');
 
   useEffect(() => {
     let isCurrent = true;
@@ -56,13 +183,67 @@ function App() {
     };
   }, []);
 
+  useEffect(() => {
+    let isCurrent = true;
+
+    getCachedCalendarEvents()
+      .then((result) => {
+        if (!isCurrent) {
+          return;
+        }
+
+        setCalendarEventsResult(result);
+        setCalendarEventsStatus('ready');
+      })
+      .catch((error) => {
+        if (!isCurrent) {
+          return;
+        }
+
+        setCalendarEventsError(error.message);
+        setCalendarEventsStatus('error');
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, []);
+
   const tickerMatches = useMemo(() => {
     return tickerCatalog?.search(tickerQuery, { limit: 9 }) ?? [];
   }, [tickerCatalog, tickerQuery]);
 
+  const calendarSections = useMemo(() => {
+    const now = Date.now();
+
+    return calendarSectionDefinitions.map((section) => {
+      const allEvents = calendarEventsResult.groups[section.key] ?? [];
+      const upcomingEvents = allEvents.filter((event) => {
+        return event.time && event.time >= now;
+      });
+      const eventsToShow = upcomingEvents.length
+        ? upcomingEvents
+        : [...allEvents].reverse();
+
+      return {
+        ...section,
+        count: calendarEventsResult.counts[section.key] ?? 0,
+        events: eventsToShow.slice(0, 5),
+      };
+    });
+  }, [calendarEventsResult.counts, calendarEventsResult.groups]);
+
   const tickerCountLabel = tickerCatalog
     ? tickerCatalog.count.toLocaleString()
     : 'Loading';
+  const calendarEventsCountLabel =
+    calendarEventsStatus === 'ready'
+      ? `${calendarEventsResult.counts.total.toLocaleString()} events`
+      : calendarEventsStatus;
+  const calendarEventsSourceLabel =
+    calendarEventsStatus === 'ready' && calendarEventsResult.stale
+      ? 'Yahoo default endpoint / cached'
+      : 'Yahoo default endpoint';
 
   return (
     <main className="shell">
@@ -77,6 +258,7 @@ function App() {
 
         <nav className="nav-list">
           <a className="active" href="#dashboard">Dashboard</a>
+          <a href="#events">Events</a>
           <a href="#tickers">Tickers</a>
           <a href="#venues">Venues</a>
           <a href="#alerts">Alerts</a>
@@ -130,6 +312,70 @@ function App() {
               </div>
             </article>
           ))}
+        </section>
+
+        <section className="calendar-dashboard" id="events">
+          <div className="calendar-dashboard-heading">
+            <div>
+              <p className="eyebrow">Yahoo Calendar</p>
+              <h2>Market Events</h2>
+            </div>
+            <span
+              className={`status-pill ${
+                calendarEventsStatus === 'ready' ? 'positive' : 'neutral'
+              }`}
+            >
+              {calendarEventsCountLabel}
+            </span>
+          </div>
+
+          <div className="calendar-events-meta">
+            <span>{calendarEventsSourceLabel}</span>
+            <span>Cached for 5 minutes</span>
+          </div>
+
+          {calendarEventsStatus === 'error' ? (
+            <p className="load-error">{calendarEventsError}</p>
+          ) : calendarEventsStatus === 'loading' ? (
+            <p className="empty-state">Loading market calendar...</p>
+          ) : (
+            <div className="calendar-sections-grid">
+              {calendarSections.map((section) => (
+                <article
+                  className={`panel calendar-section-panel section-${section.type}`}
+                  key={section.key}
+                >
+                  <div className="panel-heading">
+                    <div>
+                      <p className="eyebrow">{section.key}</p>
+                      <h2>{section.title}</h2>
+                    </div>
+                    <span className={`calendar-section-icon type-${section.type}`}>
+                      <section.Icon size={18} aria-hidden="true" />
+                      {section.count.toLocaleString()}
+                    </span>
+                  </div>
+
+                  <div
+                    className="calendar-section-events"
+                    aria-label={`Yahoo Finance ${section.title}`}
+                  >
+                    {section.events.length ? (
+                      section.events.map((event) => (
+                        <CalendarEventItem
+                          event={event}
+                          showType={false}
+                          key={event.id}
+                        />
+                      ))
+                    ) : (
+                      <p className="empty-state">No events returned.</p>
+                    )}
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
         </section>
 
         <section className="panel ticker-panel" id="tickers">

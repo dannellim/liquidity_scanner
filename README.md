@@ -39,8 +39,12 @@ info so the request follows SEC fair access guidance.
 ## Yahoo Finance
 
 This repo includes `yahoo-finance2` for server-side or local scripts. The browser
-app does not import it directly because Yahoo Finance requests from GitHub Pages
-can be blocked by CORS.
+dashboard also loads Yahoo calendar events for IPOs, SEC reports, earnings, and
+macro releases from the plain Yahoo calendar endpoint, then caches the response
+in browser storage for 5 minutes. In local development, Vite proxies the calendar
+request through
+`/api/yahoo/calendar-events` to avoid browser CORS blocking; static deployments
+may need their own proxy if Yahoo blocks direct browser requests.
 
 ```bash
 npm run yahoo:quote -- AAPL MSFT
