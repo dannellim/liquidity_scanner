@@ -9,12 +9,15 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "test": "node --test",
-    "update:sec-tickers": "node scripts/update-sec-company-tickers.mjs"
+    "update:sec-tickers": "node scripts/update-sec-company-tickers.mjs",
+    "yahoo:quote": "node scripts/yahoo-finance-quote.mjs",
+    "yahoo:top-traded": "node scripts/yahoo-top-traded.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "yahoo-finance2": "^3.14.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^6.0.1",

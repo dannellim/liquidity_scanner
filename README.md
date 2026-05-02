@@ -36,6 +36,17 @@ https://www.sec.gov/files/company_tickers.json
 For automated refreshes, set `SEC_USER_AGENT` to a descriptive value with contact
 info so the request follows SEC fair access guidance.
 
+## Yahoo Finance
+
+This repo includes `yahoo-finance2` for server-side or local scripts. The browser
+app does not import it directly because Yahoo Finance requests from GitHub Pages
+can be blocked by CORS.
+
+```bash
+npm run yahoo:quote -- AAPL MSFT
+npm run yahoo:top-traded -- 20
+```
+
 ## GitHub Pages
 
 This repo includes `.github/workflows/deploy.yml`. After pushing to `main`, enable
