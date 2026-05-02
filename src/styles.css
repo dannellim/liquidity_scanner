@@ -202,6 +202,10 @@ h2 {
   color: var(--ink);
 }
 
+.ticker-search-field {
+  width: min(32rem, 44vw);
+}
+
 .primary-action {
   border-color: #1f6f59;
   background: #1f6f59;
@@ -323,6 +327,84 @@ h2 {
   color: #24735b;
 }
 
+.neutral {
+  background: #eef2f5;
+  color: #54616b;
+}
+
+.ticker-panel {
+  display: grid;
+  gap: 1rem;
+}
+
+.ticker-source-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.75rem;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.ticker-results {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  border: 1px solid #edf0ec;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.ticker-result {
+  display: grid;
+  min-height: 5.5rem;
+  align-content: center;
+  gap: 0.25rem;
+  border-right: 1px solid #edf0ec;
+  border-bottom: 1px solid #edf0ec;
+  color: var(--ink);
+  padding: 0.85rem;
+  text-decoration: none;
+}
+
+.ticker-result:hover,
+.ticker-result:focus-visible {
+  background: #f8faf8;
+}
+
+.ticker-result:focus-visible {
+  outline: 2px solid #286c91;
+  outline-offset: -2px;
+}
+
+.ticker-result strong,
+.ticker-result span,
+.ticker-result code {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ticker-result strong {
+  font-size: 1.05rem;
+}
+
+.ticker-result span {
+  color: #45514a;
+  font-size: 0.9rem;
+}
+
+.ticker-result code {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.load-error {
+  margin: 0;
+  color: #a13d31;
+}
+
 .alert-panel {
   display: grid;
   align-content: start;
@@ -435,6 +517,10 @@ th {
   .summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .ticker-results {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 760px) {
@@ -461,15 +547,22 @@ th {
 
   .actions {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
   }
 
-  .search-field,
-  .primary-action {
+  .search-field {
     grid-column: 1 / -1;
   }
 
+  .ticker-search-field {
+    width: 100%;
+  }
+
   .summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ticker-results {
     grid-template-columns: 1fr;
   }
 

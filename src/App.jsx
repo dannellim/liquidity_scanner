@@ -1,12 +1,11 @@
+import { useEffect, useMemo, useState } from 'react';
 import {
   ArrowUpRight,
   Bell,
-  Download,
-  Filter,
-  RefreshCw,
   Search,
   ShieldCheck,
 } from 'lucide-react';
+import { getCachedSecCompanyTickerCatalog } from './data/secTickerSource.js';
 
 const markets = [
   { name: 'US Equities', score: 84, change: '+6.8%', depth: '$41.2B', tone: 'green' },
@@ -26,6 +25,45 @@ const orderBooks = [
 const flowBars = [52, 74, 46, 88, 67, 91, 72, 56, 83, 61, 79, 95];
 
 function App() {
+  const [tickerCatalog, setTickerCatalog] = useState(null);
+  const [tickerQuery, setTickerQuery] = useState('');
+  const [tickerStatus, setTickerStatus] = useState('loading');
+  const [tickerError, setTickerError] = useState('');
+
+  useEffect(() => {
+    let isCurrent = true;
+
+    getCachedSecCompanyTickerCatalog()
+      .then((catalog) => {
+        if (!isCurrent) {
+          return;
+        }
+
+        setTickerCatalog(catalog);
+        setTickerStatus('ready');
+      })
+      .catch((error) => {
+        if (!isCurrent) {
+          return;
+        }
+
+        setTickerError(error.message);
+        setTickerStatus('error');
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, []);
+
+  const tickerMatches = useMemo(() => {
+    return tickerCatalog?.search(tickerQuery, { limit: 9 }) ?? [];
+  }, [tickerCatalog, tickerQuery]);
+
+  const tickerCountLabel = tickerCatalog
+    ? tickerCatalog.count.toLocaleString()
+    : 'Loading';
+
   return (
     <main className="shell">
       <aside className="sidebar" aria-label="Main navigation">
@@ -39,6 +77,7 @@ function App() {
 
         <nav className="nav-list">
           <a className="active" href="#dashboard">Dashboard</a>
+          <a href="#tickers">Tickers</a>
           <a href="#venues">Venues</a>
           <a href="#alerts">Alerts</a>
           <a href="#settings">Settings</a>
@@ -56,26 +95,21 @@ function App() {
       <section className="workspace" id="dashboard">
         <header className="topbar">
           <div>
-            <p className="eyebrow">Live Overview</p>
+            <p className="eyebrow">Ticker Search</p>
             <h1>Liquidity Scanner</h1>
           </div>
 
           <div className="actions">
-            <label className="search-field">
+            <label className="search-field ticker-search-field">
               <Search size={18} aria-hidden="true" />
-              <span className="sr-only">Search markets</span>
-              <input type="search" placeholder="Search market" />
+              <span className="sr-only">Search SEC tickers</span>
+              <input
+                type="search"
+                placeholder="Search ticker, company, or CIK"
+                value={tickerQuery}
+                onChange={(event) => setTickerQuery(event.target.value)}
+              />
             </label>
-            <button type="button" title="Filter markets" aria-label="Filter markets">
-              <Filter size={18} />
-            </button>
-            <button type="button" title="Refresh data" aria-label="Refresh data">
-              <RefreshCw size={18} />
-            </button>
-            <button className="primary-action" type="button">
-              <Download size={18} />
-              Export
-            </button>
           </div>
         </header>
 
@@ -96,6 +130,49 @@ function App() {
               </div>
             </article>
           ))}
+        </section>
+
+        <section className="panel ticker-panel" id="tickers">
+          <div className="panel-heading">
+            <div>
+              <h2>Ticker Info</h2>
+            </div>
+            <span
+              className={`status-pill ${
+                tickerStatus === 'ready' ? 'positive' : 'neutral'
+              }`}
+            >
+              {tickerCountLabel}
+            </span>
+          </div>
+
+          <div className="ticker-source-meta">
+            <span>
+              {tickerStatus === 'ready'
+                ? 'Search by symbol, company name, or CIK'
+                : tickerStatus}
+            </span>
+          </div>
+
+          {tickerStatus === 'error' ? (
+            <p className="load-error">{tickerError}</p>
+          ) : (
+            <div className="ticker-results" aria-label="SEC ticker search results">
+              {tickerMatches.map((company) => (
+                <a
+                  className="ticker-result"
+                  href={company.secCompanyUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  key={`${company.ticker}-${company.cik}`}
+                >
+                  <strong>{company.ticker}</strong>
+                  <span>{company.title}</span>
+                  <code>CIK {company.paddedCik}</code>
+                </a>
+              ))}
+            </div>
+          )}
         </section>
 
         <section className="content-grid">
