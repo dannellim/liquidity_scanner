@@ -1,7 +1,8 @@
 # Liquidity Scanner
 
-A simple React + Vite website for a liquidity scanner dashboard. The site builds
-to static assets and includes a GitHub Actions workflow for GitHub Pages.
+A static React + Vite site for searching SEC EDGAR companies by ticker, name, or
+CIK. Each result card opens the company's EDGAR filings page in a new tab. The
+site builds to static assets and ships via GitHub Pages.
 
 ## Local development
 
@@ -35,21 +36,6 @@ https://www.sec.gov/files/company_tickers.json
 
 For automated refreshes, set `SEC_USER_AGENT` to a descriptive value with contact
 info so the request follows SEC fair access guidance.
-
-## Yahoo Finance
-
-This repo includes `yahoo-finance2` for server-side or local scripts. The browser
-dashboard also loads Yahoo calendar events for IPOs, SEC reports, earnings, and
-macro releases from the plain Yahoo calendar endpoint, then caches the response
-in browser storage for 5 minutes. In local development, Vite proxies the calendar
-request through
-`/api/yahoo/calendar-events` to avoid browser CORS blocking; static deployments
-may need their own proxy if Yahoo blocks direct browser requests.
-
-```bash
-npm run yahoo:quote -- AAPL MSFT
-npm run yahoo:top-traded -- 20
-```
 
 ## GitHub Pages
 
