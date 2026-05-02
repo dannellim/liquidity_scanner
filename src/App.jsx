@@ -1,16 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  ArrowDownRight,
-  ArrowUpRight,
-  Minus,
-  RefreshCw,
-  Search,
-} from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight, Minus, Search } from 'lucide-react';
 import { getCachedSecCompanyTickerCatalog } from './data/secTickerSource.js';
-import {
-  loadMostActiveSg,
-  MOST_ACTIVE_SG_CACHE_TTL_MS,
-} from './data/mostActiveSgSource.js';
+import { loadMostActiveSg } from './data/mostActiveSgSource.js';
 
 function App() {
   const [tickerCatalog, setTickerCatalog] = useState(null);
@@ -21,8 +12,6 @@ function App() {
   const [moversResult, setMoversResult] = useState(null);
   const [moversStatus, setMoversStatus] = useState('loading');
   const [moversError, setMoversError] = useState('');
-  const [moversTick, setMoversTick] = useState(0);
-  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
     let isCurrent = true;
@@ -63,70 +52,18 @@ function App() {
     return () => {
       isCurrent = false;
     };
-  }, [moversTick]);
-
-  useEffect(() => {
-    const interval = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    const interval = setInterval(
-      () => setMoversTick((t) => t + 1),
-      MOST_ACTIVE_SG_CACHE_TTL_MS,
-    );
-    return () => clearInterval(interval);
   }, []);
 
   const tickerMatches = useMemo(() => {
     return tickerCatalog?.search(tickerQuery, { limit: 12 }) ?? [];
   }, [tickerCatalog, tickerQuery]);
 
-  const moversAgeLabel = moversResult
-    ? formatRelativeTime(now - moversResult.fetchedAt)
-    : '';
-  const moversSourceLabel = 'Live · cached 1 min';
-
   return (
     <main className="shell">
       <section className="workspace">
-        <header className="topbar">
-          <div>
-            <p className="eyebrow">SEC EDGAR Search</p>
-            <h1>Liquidity Scanner</h1>
-          </div>
-
-          <div className="actions">
-            <label className="search-field ticker-search-field">
-              <Search size={18} aria-hidden="true" />
-              <span className="sr-only">Search SEC tickers</span>
-              <input
-                type="search"
-                placeholder="Search ticker, company, or CIK"
-                value={tickerQuery}
-                onChange={(event) => setTickerQuery(event.target.value)}
-                autoFocus
-              />
-            </label>
-          </div>
-        </header>
-
         <section className="panel movers-panel">
           <div className="panel-heading">
-            <div>
-              <p className="eyebrow">{moversSourceLabel}</p>
-              <h2>Most Active — Singapore</h2>
-            </div>
-            <button
-              type="button"
-              className="refresh-button"
-              onClick={() => setMoversTick((t) => t + 1)}
-              disabled={moversStatus === 'loading'}
-              aria-label="Refresh most-active stocks"
-            >
-              <RefreshCw size={16} aria-hidden="true" />
-              {moversAgeLabel || 'Refresh'}
-            </button>
+            <h2>Most Active — Singapore</h2>
           </div>
 
           {moversError && moversStatus !== 'ready' ? (
@@ -145,11 +82,19 @@ function App() {
         </section>
 
         <section className="panel ticker-panel">
-          <div className="panel-heading">
-            <div>
-              <p className="eyebrow">Click a card to open EDGAR</p>
-              <h2>Companies</h2>
-            </div>
+          <div className="panel-heading panel-heading-with-search">
+            <h2>US Companies</h2>
+            <label className="search-field ticker-search-field">
+              <Search size={18} aria-hidden="true" />
+              <span className="sr-only">Search SEC tickers</span>
+              <input
+                type="search"
+                placeholder="Search ticker, company, or CIK"
+                value={tickerQuery}
+                onChange={(event) => setTickerQuery(event.target.value)}
+                autoFocus
+              />
+            </label>
           </div>
 
           {tickerStatus === 'error' ? (
@@ -300,17 +245,6 @@ const compactFormatter = new Intl.NumberFormat('en-US', {
 function formatCompactNumber(value) {
   if (typeof value !== 'number' || !Number.isFinite(value)) return '—';
   return compactFormatter.format(value);
-}
-
-function formatRelativeTime(deltaMs) {
-  if (!Number.isFinite(deltaMs) || deltaMs < 0) return 'just now';
-  const seconds = Math.floor(deltaMs / 1000);
-  if (seconds < 5) return 'just now';
-  if (seconds < 60) return `${seconds}s ago`;
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  return `${hours}h ago`;
 }
 
 export default App;
